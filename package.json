@@ -1,6 +1,9 @@
 {
   "name": "@makeflow/mobx-utils",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build:library": "tslint -p src/library && rimraf bld/library && tsc -p src/library",
     "prepublish": "yarn build:library"
