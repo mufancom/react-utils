@@ -98,7 +98,7 @@ function pushConsumer(target: any, key: string, Consumer: Consumer<any>): void {
   }
 }
 
-export function observer<T extends ComponentType>(target: T): T {
+export function observer<T extends ComponentType<any>>(target: T): T {
   target = _observer(target) || target;
 
   let injections = target.prototype._injections as string[] | undefined;
