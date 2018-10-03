@@ -9,7 +9,13 @@ node_modules/
 # Building artifacts
 
 bld/
+dist/
+.cache/
 *.tgz
+
+# Debugging files
+
+/design/
 
 # Debugging outputs
 

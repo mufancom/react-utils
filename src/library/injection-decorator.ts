@@ -1,9 +1,13 @@
+import hoistStatics from 'hoist-non-react-statics';
+import {inject as _inject, observer as _observer} from 'mobx-react';
 import {
-  IReactComponent,
-  inject as _inject,
-  observer as _observer,
-} from 'mobx-react';
-import {Component} from 'react';
+  Component,
+  ComponentType,
+  Consumer,
+  ReactElement,
+  createElement,
+  forwardRef,
+} from 'react';
 
 export function inject(storeKey: string): PropertyDecorator;
 export function inject(target: Component, key: string): void;
@@ -35,7 +39,9 @@ export interface NamedInjectDecorator {
   (target: Component, key: string): void;
 }
 
-function createNamedInjectDecorator(storeKey: string): NamedInjectDecorator {
+export function createNamedInjectDecorator(
+  storeKey: string,
+): NamedInjectDecorator {
   return (target: Component | string, key?: string): any => {
     if (typeof target === 'string') {
       let key = target;
@@ -68,13 +74,70 @@ function pushInjection(target: any, storeKey: string): void {
   }
 }
 
-export function observer<T extends IReactComponent>(target: T): T {
+export type ConsumeDecorator = (target: Component, key: string) => void;
+
+export function consume<T>(Consumer: Consumer<T>): ConsumeDecorator {
+  return (target: Component, key: string): any => {
+    pushConsumer(target, key, Consumer);
+
+    return {
+      get(this: any): any {
+        return this.props[key];
+      },
+    };
+  };
+}
+
+function pushConsumer(target: any, key: string, Consumer: Consumer<any>): void {
+  if (target._consumers) {
+    target._consumers.set(key, Consumer);
+  } else {
+    Object.defineProperty(target, '_consumers', {
+      value: new Map<string, Consumer<any>>([[key, Consumer]]),
+    });
+  }
+}
+
+export function observer<T extends ComponentType>(target: T): T {
   target = _observer(target) || target;
 
-  let stores = target.prototype._injections;
+  let injections = target.prototype._injections as string[] | undefined;
 
-  if (stores) {
-    target = _inject(...stores)(target) || target;
+  if (injections) {
+    target = _inject(...injections)(target) || target;
+  }
+
+  let consumers = target.prototype._consumers as
+    | Map<string, Consumer<any>>
+    | undefined;
+
+  if (consumers) {
+    let original = target;
+
+    target = forwardRef((props, ref) => {
+      let consumerProps: any = {};
+      let consumerEntries = Array.from(consumers!);
+
+      return createConsumerWrapperOrTarget();
+
+      function createConsumerWrapperOrTarget(): ReactElement<any> {
+        let consumerEntry = consumerEntries.shift();
+
+        if (consumerEntry) {
+          let [key, Consumer] = consumerEntry;
+
+          return createElement(Consumer, undefined, (value: any) => {
+            consumerProps[key] = value;
+
+            return createConsumerWrapperOrTarget();
+          });
+        } else {
+          return createElement(original, {...consumerProps, ...props, ref});
+        }
+      }
+    }) as T;
+
+    hoistStatics(target, original);
   }
 
   return target;
