@@ -1,5 +1,5 @@
 {
-  "name": "@makeflow/mobx-utils",
+  "name": "@makeflow/react-utils",
   "version": "0.1.3",
   "publishConfig": {
     "access": "public"
