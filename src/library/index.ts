@@ -1,2 +1,2 @@
 export * from './injection-decorator';
-export * from './guard';
+export * from './guard-decorator';
