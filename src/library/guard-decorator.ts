@@ -1,15 +1,5 @@
-import {KeyOfValueWithType} from 'tslang';
-
-export function guard(): <TObject extends object>(
-  target: TObject,
-  key: KeyOfValueWithType<TObject, (...args: any[]) => void | Promise<void>>,
-) => any;
-export function guard<T>(
-  defaultValue: T,
-): <TObject extends object>(
-  target: TObject,
-  key: KeyOfValueWithType<TObject, (...args: any[]) => T | Promise<T>>,
-) => any;
+export function guard(): (target: object, key: string) => any;
+export function guard<T>(defaultValue: T): (target: object, key: string) => any;
 export function guard(defaultValue?: any): any {
   return (target: object, key: string): PropertyDescriptor => {
     let descriptor = Object.getOwnPropertyDescriptor(target, key);

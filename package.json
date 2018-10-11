@@ -37,7 +37,6 @@
     "typescript": "^3.1.2"
   },
   "dependencies": {
-    "hoist-non-react-statics": "^3.0.1",
-    "tslang": "^0.1.11"
+    "hoist-non-react-statics": "^3.0.1"
   }
 }
