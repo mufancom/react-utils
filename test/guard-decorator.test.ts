@@ -7,6 +7,8 @@ const error = new Error();
 const spy = jest.fn<any>();
 
 class Test {
+  constructor(private id: string) {}
+
   @guard(456)
   okay(): number {
     return 123;
@@ -20,7 +22,7 @@ class Test {
 
   @guard()
   bar1 = (x: number, y: number): void => {
-    spy(x, y);
+    spy(this.id, x, y);
     throw error;
   };
 
@@ -61,7 +63,14 @@ class Test {
   };
 }
 
-let instance = new Test();
+let instance!: Test;
+
+beforeEach(() => {
+  instance = new Test('abc');
+
+  // tslint:disable-next-line:no-unused-expression
+  new Test('def');
+});
 
 test('should guard pass through', () => {
   expect(instance.okay()).toBe(123);
@@ -78,7 +87,7 @@ test('should guard synchronous method', () => {
 test('should guard synchronous function property', () => {
   // tslint:disable-next-line:no-void-expression
   expect(instance.bar1(123, 456)).toBeUndefined();
-  expect(spy).toHaveBeenCalledWith(123, 456);
+  expect(spy).toHaveBeenCalledWith('abc', 123, 456);
   expect(console.error).toHaveBeenCalledWith(error);
 });
 

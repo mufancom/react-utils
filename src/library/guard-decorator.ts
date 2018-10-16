@@ -1,24 +1,29 @@
 export function guard(): (target: object, key: string) => any;
 export function guard<T>(defaultValue: T): (target: object, key: string) => any;
 export function guard(defaultValue?: any): any {
-  return (target: object, key: string): PropertyDescriptor => {
-    let descriptor = Object.getOwnPropertyDescriptor(target, key);
+  return (
+    _target: object,
+    _key: string,
+    descriptor: PropertyDescriptor | undefined,
+  ): PropertyDescriptor => {
     let fn = descriptor && descriptor.value;
 
     if (fn) {
       return {
         value: wrap(fn),
       };
-    } else {
-      return {
-        get() {
-          return fn;
-        },
-        set(value) {
-          fn = wrap(value);
-        },
-      };
     }
+
+    let cache = new WeakMap<object, Function>();
+
+    return {
+      get() {
+        return cache.get(this);
+      },
+      set(value) {
+        cache.set(this, wrap(value));
+      },
+    };
   };
 
   function wrap(fn: Function): Function {
