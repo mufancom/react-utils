@@ -103,10 +103,6 @@ export function observer<T extends ComponentType<any>>(target: T): T {
 
   let injections = target.prototype._injections as string[] | undefined;
 
-  if (injections) {
-    target = _inject(...injections)(target) || target;
-  }
-
   let consumers = target.prototype._consumers as
     | Map<string, Consumer<any>>
     | undefined;
@@ -138,6 +134,10 @@ export function observer<T extends ComponentType<any>>(target: T): T {
     }) as T;
 
     hoistStatics(target, original);
+  }
+  
+  if (injections) {
+    target = _inject(...injections)(target) || target;
   }
 
   return target;
