@@ -9,6 +9,8 @@ import {
   forwardRef,
 } from 'react';
 
+const hasOwnProperty = Object.prototype.hasOwnProperty;
+
 export function inject(storeKey: string): PropertyDecorator;
 export function inject(target: Component, key: string): void;
 export function inject(target: Component | string, key?: string): any {
@@ -65,11 +67,19 @@ export function createNamedInjectDecorator(
 }
 
 function pushInjection(target: any, storeKey: string): void {
-  if (target._injections) {
+  if (hasOwnProperty.call(target, '_injections')) {
     target._injections.push(storeKey);
   } else {
+    let injections: string[];
+
+    if (target._injections) {
+      injections = [...target._injections, storeKey];
+    } else {
+      injections = [storeKey];
+    }
+
     Object.defineProperty(target, '_injections', {
-      value: [storeKey],
+      value: injections,
     });
   }
 }
@@ -89,11 +99,19 @@ export function consume<T>(Consumer: Consumer<T>): ConsumeDecorator {
 }
 
 function pushConsumer(target: any, key: string, Consumer: Consumer<any>): void {
-  if (target._consumers) {
+  if (hasOwnProperty.call(target, '_consumers')) {
     target._consumers.set(key, Consumer);
   } else {
+    let consumers: [string, Consumer<any>][];
+
+    if (target._consumers) {
+      consumers = [target._consumers.entries(), [key, Consumer]];
+    } else {
+      consumers = [[key, Consumer]];
+    }
+
     Object.defineProperty(target, '_consumers', {
-      value: new Map<string, Consumer<any>>([[key, Consumer]]),
+      value: new Map<string, Consumer<any>>(consumers),
     });
   }
 }
@@ -135,7 +153,7 @@ export function observer<T extends ComponentType<any>>(target: T): T {
 
     hoistStatics(target, original);
   }
-  
+
   if (injections) {
     target = _inject(...injections)(target) || target;
   }
