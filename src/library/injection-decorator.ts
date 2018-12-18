@@ -105,7 +105,7 @@ function pushConsumer(target: any, key: string, Consumer: Consumer<any>): void {
     let consumers: [string, Consumer<any>][];
 
     if (target._consumers) {
-      consumers = [target._consumers.entries(), [key, Consumer]];
+      consumers = [...target._consumers, [key, Consumer]];
     } else {
       consumers = [[key, Consumer]];
     }
