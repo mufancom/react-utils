@@ -155,6 +155,15 @@ export function observer<T extends ComponentType<any>>(target: T): T {
   }
 
   if (injections) {
+    if (!target.prototype) {
+      Object.defineProperty(target, 'prototype', {
+        value: {
+          __note: 'Hack for MobX React `isStateless` function',
+          render() {},
+        },
+      });
+    }
+
     target = _inject(...injections)(target) || target;
   }
 
