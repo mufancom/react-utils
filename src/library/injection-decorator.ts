@@ -182,7 +182,7 @@ export function observer<T extends ComponentType<any>>(target: T): T {
             if (
               storeInjectionDict &&
               typeof storeInjectionDict === 'object' &&
-              hasOwnProperty.call(storeInjectionDict, name)
+              storeInjectionDict[name] !== undefined
             ) {
               injectionDict[name] = storeInjectionDict[name];
             }
