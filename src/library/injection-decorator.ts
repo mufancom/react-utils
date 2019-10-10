@@ -185,6 +185,10 @@ export function observer<T extends ComponentType<any>>(target: T): T {
               storeInjectionDict[name] !== undefined
             ) {
               injectionDict[name] = storeInjectionDict[name];
+            } else {
+              throw new Error(
+                `Unable to inject, Excepted a ${name} property on Provider or Provider.injections`,
+              );
             }
           }
         }
