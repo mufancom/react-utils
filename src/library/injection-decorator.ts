@@ -8,6 +8,7 @@ import {
   createElement,
   forwardRef,
 } from 'react';
+import {Dict} from 'tslang';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -116,10 +117,14 @@ function pushConsumer(target: any, key: string, Consumer: Consumer<any>): void {
   }
 }
 
+interface InjectionStoreDict extends Dict<unknown> {
+  injections: Dict<unknown>;
+}
+
 export function observer<T extends ComponentType<any>>(target: T): T {
   target = _observer(target) || target;
 
-  let injections = target.prototype._injections as string[] | undefined;
+  let injectionNames = target.prototype._injections as string[] | undefined;
 
   let consumers = target.prototype._consumers as
     | Map<string, Consumer<any>>
@@ -154,7 +159,7 @@ export function observer<T extends ComponentType<any>>(target: T): T {
     hoistStatics(target, original);
   }
 
-  if (injections) {
+  if (injectionNames) {
     if (!target.prototype) {
       Object.defineProperty(target, 'prototype', {
         value: {
@@ -164,7 +169,28 @@ export function observer<T extends ComponentType<any>>(target: T): T {
       });
     }
 
-    target = _inject(...injections)(target) || target;
+    target =
+      _inject((storeDict: InjectionStoreDict) => {
+        let injectionDict: Dict<unknown> = {};
+
+        for (let name of injectionNames!) {
+          if (hasOwnProperty.call(storeDict, name)) {
+            injectionDict[name] = storeDict[name];
+          } else {
+            let {injections: storeInjectionDict} = storeDict;
+
+            if (
+              storeInjectionDict &&
+              typeof storeInjectionDict === 'object' &&
+              hasOwnProperty.call(storeInjectionDict, name)
+            ) {
+              injectionDict[name] = storeInjectionDict[name];
+            }
+          }
+        }
+
+        return injectionDict;
+      })(target) || target;
   }
 
   return target;

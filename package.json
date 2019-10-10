@@ -18,7 +18,7 @@
     "react": "^16.0.0"
   },
   "devDependencies": {
-    "@magicspace/configs": "^0.1.44",
+    "@magicspace/configs": "0.1.49",
     "@types/hoist-non-react-statics": "^3.0.1",
     "@types/jest": "^23.3.5",
     "@types/react": "^16.4.12",
@@ -37,6 +37,7 @@
     "typescript": "^3.1.2"
   },
   "dependencies": {
-    "hoist-non-react-statics": "^3.0.1"
+    "hoist-non-react-statics": "^3.0.1",
+    "tslang": "^0.1.17"
   }
 }
