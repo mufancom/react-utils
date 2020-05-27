@@ -8,92 +8,24 @@ import {
   createElement,
   forwardRef,
 } from 'react';
-import {Dict} from 'tslang';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
-export function inject(storeKey: string): PropertyDecorator;
-export function inject(target: Component, key: string): void;
-export function inject(target: Component | string, key?: string): any {
-  if (typeof target === 'string') {
-    let storeKey = target;
-    return (prototype: Component) => decorate(prototype, storeKey);
-  } else if (key) {
-    return decorate(target, key);
-  } else {
-    throw new Error('Invalid usage');
-  }
+export type ConsumeDecorator = (target: Component, key: string) => any;
 
-  function decorate(target: any, storeKey: string): PropertyDescriptor {
-    pushInjection(target, storeKey);
+export type ConsumeGetter<T, TProperty> = (object: T) => TProperty;
 
-    return {
-      get(this: any): any {
-        return this.props[storeKey];
-      },
-    };
-  }
-}
-
-export const context = createNamedInjectDecorator('context');
-
-export interface NamedInjectDecorator {
-  (key: string): PropertyDecorator;
-  (target: Component, key: string): void;
-}
-
-export function createNamedInjectDecorator(
-  storeKey: string,
-): NamedInjectDecorator {
-  return (target: Component | string, key?: string): any => {
-    if (typeof target === 'string') {
-      let key = target;
-      return (prototype: Component) => decorate(prototype, key);
-    } else if (key) {
-      return decorate(target, key);
-    } else {
-      throw new Error('Invalid usage');
-    }
-
-    function decorate(target: any, syncableKey: string): any {
-      pushInjection(target, storeKey);
-
-      return {
-        get(this: any): any {
-          return this.props[storeKey][syncableKey];
-        },
-      };
-    }
-  };
-}
-
-function pushInjection(target: any, storeKey: string): void {
-  if (hasOwnProperty.call(target, '_injections')) {
-    target._injections.push(storeKey);
-  } else {
-    let injections: string[];
-
-    if (target._injections) {
-      injections = [...target._injections, storeKey];
-    } else {
-      injections = [storeKey];
-    }
-
-    Object.defineProperty(target, '_injections', {
-      value: injections,
-    });
-  }
-}
-
-export type ConsumeDecorator = (target: Component, key: string) => void;
-
-export function consume<T>(Consumer: Consumer<T>): ConsumeDecorator {
-  return (target: Component, key: string): any => {
+export function consume<T, TProperty = T>(
+  Consumer: Consumer<T>,
+  getter?: ConsumeGetter<T, TProperty>,
+): ConsumeDecorator {
+  return (target, key) => {
     pushConsumer(target, key, Consumer);
 
     return {
       get(this: any): any {
-        return this.props[key];
+        let value = this.props._consumerProps?.[key];
+        return getter ? getter(value) : value;
       },
     };
   };
@@ -117,14 +49,8 @@ function pushConsumer(target: any, key: string, Consumer: Consumer<any>): void {
   }
 }
 
-interface InjectionStoreDict extends Dict<unknown> {
-  injections: Dict<unknown>;
-}
-
 export function observer<T extends ComponentType<any>>(target: T): T {
   target = _observer(target) || target;
-
-  let injectionNames = target.prototype._injections as string[] | undefined;
 
   let consumers = target.prototype._consumers as
     | Map<string, Consumer<any>>
@@ -139,7 +65,7 @@ export function observer<T extends ComponentType<any>>(target: T): T {
 
       return createConsumerWrapperOrTarget();
 
-      function createConsumerWrapperOrTarget(): ReactElement<any> {
+      function createConsumerWrapperOrTarget(): ReactElement {
         let consumerEntry = consumerEntries.shift();
 
         if (consumerEntry) {
@@ -151,50 +77,16 @@ export function observer<T extends ComponentType<any>>(target: T): T {
             return createConsumerWrapperOrTarget();
           });
         } else {
-          return createElement(original, {...consumerProps, ...props, ref});
+          return createElement(original, {
+            _consumerProps: consumerProps,
+            ...props,
+            ref,
+          });
         }
       }
-    }) as T;
+    }) as any;
 
     hoistStatics(target, original);
-  }
-
-  if (injectionNames) {
-    if (!target.prototype) {
-      Object.defineProperty(target, 'prototype', {
-        value: {
-          __note: 'Hack for MobX React `isStateless` function',
-          render() {},
-        },
-      });
-    }
-
-    target =
-      _inject((storeDict: InjectionStoreDict) => {
-        let injectionDict: Dict<unknown> = {};
-
-        for (let name of injectionNames!) {
-          if (hasOwnProperty.call(storeDict, name)) {
-            injectionDict[name] = storeDict[name];
-          } else {
-            let {injections: storeInjectionDict} = storeDict;
-
-            if (
-              storeInjectionDict &&
-              typeof storeInjectionDict === 'object' &&
-              storeInjectionDict[name] !== undefined
-            ) {
-              injectionDict[name] = storeInjectionDict[name];
-            } else {
-              throw new Error(
-                `Unable to inject, Excepted a ${name} property on Provider or Provider.injections`,
-              );
-            }
-          }
-        }
-
-        return injectionDict;
-      })(target) || target;
   }
 
   return target;
