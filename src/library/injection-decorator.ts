@@ -4,6 +4,7 @@ import {
   Component,
   ComponentType,
   Consumer,
+  Context,
   ReactElement,
   createElement,
   forwardRef,
@@ -16,15 +17,17 @@ export type ConsumeDecorator = (target: Component, key: string) => any;
 export type ConsumeGetter<T, TProperty> = (object: T) => TProperty;
 
 export function consume<T, TProperty = T>(
-  Consumer: Consumer<T>,
+  context: Context<T> | Consumer<T>,
   getter?: ConsumeGetter<T, TProperty>,
 ): ConsumeDecorator {
+  let Consumer = isReactContext(context) ? context.Consumer : context;
+
   return (target, key) => {
     pushConsumer(target, key, Consumer);
 
     return {
       get(this: any): any {
-        let value = this.props._consumerProps?.[key];
+        let value = this.props._consumerProps[key];
         return getter ? getter(value) : value;
       },
     };
@@ -52,6 +55,10 @@ function pushConsumer(target: any, key: string, Consumer: Consumer<any>): void {
 export function observer<T extends ComponentType<any>>(target: T): T {
   target = _observer(target) || target;
 
+  if (typeof target.prototype !== 'object') {
+    return target;
+  }
+
   let consumers = target.prototype._consumers as
     | Map<string, Consumer<any>>
     | undefined;
@@ -78,8 +85,8 @@ export function observer<T extends ComponentType<any>>(target: T): T {
           });
         } else {
           return createElement(original, {
-            _consumerProps: consumerProps,
             ...props,
+            _consumerProps: consumerProps,
             ref,
           });
         }
@@ -90,4 +97,14 @@ export function observer<T extends ComponentType<any>>(target: T): T {
   }
 
   return target;
+}
+
+function isReactContext<T>(
+  object: Context<T> | Consumer<T>,
+): object is Context<T> {
+  return (
+    '$$typeof' in object &&
+    object.$$typeof === Symbol.for('react.context') &&
+    !('_context' in object)
+  );
 }
