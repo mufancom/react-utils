@@ -1,4 +1,5 @@
 import hoistStatics from 'hoist-non-react-statics';
+import {action, observable} from 'mobx';
 import {inject as _inject, observer as _observer} from 'mobx-react';
 import {
   Component,
@@ -67,7 +68,7 @@ export function observer<T extends ComponentType<any>>(target: T): T {
     let original = target;
 
     target = forwardRef((props, ref) => {
-      let consumerProps: any = {};
+      let consumerProps: any = observable({});
       let consumerEntries = Array.from(consumers!);
 
       return createConsumerWrapperOrTarget();
@@ -78,11 +79,15 @@ export function observer<T extends ComponentType<any>>(target: T): T {
         if (consumerEntry) {
           let [key, Consumer] = consumerEntry;
 
-          return createElement(Consumer, undefined, (value: any) => {
-            consumerProps[key] = value;
+          return createElement(
+            Consumer,
+            undefined,
+            action((value: any) => {
+              consumerProps[key] = value;
 
-            return createConsumerWrapperOrTarget();
-          });
+              return createConsumerWrapperOrTarget();
+            }),
+          );
         } else {
           return createElement(original, {
             ...props,

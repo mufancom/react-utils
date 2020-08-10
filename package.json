@@ -1,6 +1,6 @@
 {
   "name": "@makeflow/react-utils",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publishConfig": {
     "access": "public"
   },
@@ -17,6 +17,7 @@
     "!*.tsbuildinfo"
   ],
   "peerDependencies": {
+    "mobx": "5",
     "mobx-react": "6",
     "react": "16.13"
   },
